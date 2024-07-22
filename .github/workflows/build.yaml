@@ -12,7 +12,7 @@ env:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    timeout-mintues: 10
+    timeout-minutes: 10
     permissions:
       contents: read
       packages: write
