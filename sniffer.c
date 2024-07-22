@@ -345,12 +345,12 @@ void dump_buffer(uint8_t *buffer, uint16_t length) {
 
 int main(int argc, char **argv) {
   struct cli_args args = {0};
-  int port, n_bytes = -1, res, n_packets = 0;
+  int port, n_bytes = -1, res;
+  unsigned int n_packets = 0;
   size_t size = 0;
   uint8_t buffer[MODBUS_MAX_PACKET_SIZE];
   struct timeval timeout;
   fd_set set;
-  FILE *log_fp = NULL;
 
   signal(SIGUSR1, signal_handler);
 
@@ -363,7 +363,7 @@ int main(int argc, char **argv) {
 
   configure_serial_port(port, &args);
 
-  while (n_bytes != 0) {
+  while (1) {
 
     /* RTFM! these are overwritten after each select call and thus must be
      * inizialized again */
@@ -396,10 +396,9 @@ int main(int argc, char **argv) {
         dump_buffer(buffer, size);
       }
 
-      fflush(log_fp);
       size = 0;
     }
   }
 
-  return EXIT_SUCCESS;
+  return EXIT_SUCCESS; // Unreachable by the current design
 }
