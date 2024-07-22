@@ -40,7 +40,6 @@
 
 struct cli_args {
   char *serial_port;
-  char *output_file;
   char parity;
   int bits;
   uint32_t speed;
@@ -51,7 +50,6 @@ struct cli_args {
 
 struct option long_options[] = {
     {"serial-port", required_argument, NULL, 'p'},
-    {"output", required_argument, NULL, 'o'},
     {"speed", required_argument, NULL, 's'},
     {"parity", required_argument, NULL, 'P'},
     {"bits", required_argument, NULL, 'b'},
@@ -139,8 +137,6 @@ void usage(FILE *fp, char *progname, int exit_code) {
   fprintf(fp, "Usage: %s %n[-hl] [-o output] [-p port] [-s speed]\n", progname,
           &n);
   fprintf(fp, "%*c[-P parity] [-S stop_bits] [-b bits]\n\n", n, ' ');
-  fprintf(fp, " -o, --output       output file to use (defaults to stdout, "
-              "file will be truncated if already existing)\n");
   fprintf(fp, " -p, --serial-port  serial port to use\n");
   fprintf(fp, " -s, --speed        serial port speed (default 9600)\n");
   fprintf(fp, " -b, --bits         number of bits (default 8)\n");
@@ -162,7 +158,6 @@ void parse_args(int argc, char **argv, struct cli_args *args) {
 
   /* default values */
   args->serial_port = "/dev/ttyAMA0";
-  args->output_file = "-";
   args->parity = 'N';
   args->bits = 8;
   args->speed = 9600;
@@ -173,9 +168,6 @@ void parse_args(int argc, char **argv, struct cli_args *args) {
   while ((opt = getopt_long(argc, argv, "ho:p:s:P:S:b:lt:", long_options,
                             NULL)) >= 0) {
     switch (opt) {
-    case 'o':
-      args->output_file = optarg;
-      break;
     case 'p':
       args->serial_port = optarg;
       break;
@@ -205,7 +197,6 @@ void parse_args(int argc, char **argv, struct cli_args *args) {
     }
   }
 
-  fprintf(stderr, "output file: %s\n", args->output_file);
   fprintf(stderr, "serial port: %s\n", args->serial_port);
   fprintf(stderr, "port type: %d%c%d %d baud\n", args->bits, args->parity,
           args->stop_bits, args->speed);
@@ -323,61 +314,6 @@ void configure_serial_port(int fd, const struct cli_args *args) {
     DIE("tcsetattr");
 }
 
-// void write_global_header(FILE *fp)
-// {
-//     struct pcap_global_header header = {
-//         .magic_number = 0xa1b2c3d4,
-//         .version_major = 2,
-//         .version_minor = 4,
-//         .thiszone = 0,
-//         .sigfigs = 0,
-//         .snaplen = 1024,
-//         .network = 147, /* custom USER */
-//     };
-//
-//     if (fwrite(&header, sizeof header, 1, fp) != 1)
-//         DIE("write pcap");
-// }
-
-// void write_packet_header(FILE *fp, int length)
-// {
-//     struct timespec t;
-//     struct pcap_packet_header header;
-//
-//     clock_gettime(CLOCK_REALTIME, &t);
-//
-//     header.ts_sec = t.tv_sec;
-//     header.ts_usec = t.tv_nsec / 1000;
-//     header.incl_len = length;
-//     header.orig_len = length;
-//
-//     if (fwrite(&header, sizeof header, 1, fp) != 1)
-//         DIE("write pcap");
-//
-//     fflush(fp);
-// }
-
-// FILE *open_logfile(const char *path)
-// {
-//     FILE *fp;
-//     if (!path || strcmp(path, "-") == 0) {
-//         fp = stdout;
-//         if (isatty(1)) {
-//             fprintf(stderr, "capture file is binary, redirect it to a file or
-//             use the --output option!\n"); exit(EXIT_FAILURE);
-//         }
-//     } else {
-//         fp = fopen(path, "wb+");
-//         if (!fp) {
-//             DIE("cannot open output file");
-//         }
-//     }
-//
-//     write_global_header(fp);
-//
-//     return fp;
-// }
-
 void signal_handler(int signum) {
   (void)signum;
 
@@ -385,7 +321,7 @@ void signal_handler(int signum) {
 }
 
 void dump_buffer(uint8_t *buffer, uint16_t length) {
-  fprintf(stdout, "---");
+  fprintf(stdout, "----------\n");
   int i;
   if (length > 0) {
     fprintf(stdout, "Address: %02X\n", (uint8_t)buffer[0]);
@@ -428,13 +364,6 @@ int main(int argc, char **argv) {
   configure_serial_port(port, &args);
 
   while (n_bytes != 0) {
-    // if (rotate_log || !log_fp) {
-    //     if (log_fp) {
-    //         fclose(log_fp);
-    //     }
-    //     log_fp = open_logfile(args.output_file);
-    //     rotate_log = 0;
-    // }
 
     /* RTFM! these are overwritten after each select call and thus must be
      * inizialized again */
@@ -466,10 +395,6 @@ int main(int argc, char **argv) {
       if (crc_check(buffer, size)) {
         dump_buffer(buffer, size);
       }
-      // write_packet_header(log_fp, size);
-      //
-      // if (fwrite(buffer, 1, size, log_fp) != size)
-      //     DIE("write pcap");
 
       fflush(log_fp);
       size = 0;
