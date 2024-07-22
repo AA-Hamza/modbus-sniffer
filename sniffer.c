@@ -125,7 +125,7 @@ int crc_check(uint8_t *buffer, int length) {
   valid_crc = ((crc >> 8) == (buffer[1] & 0xFF)) &&
               ((crc & 0xFF) == (buffer[0] & 0xFF));
 
-  fprintf(stderr, "CRC: %04X = %02X%02X [%s]\n", crc, buffer[1] & 0xFF,
+  fprintf(stdout, "CRC: %04X = %02X%02X [%s]\n", crc, buffer[1] & 0xFF,
           buffer[0] & 0xFF, valid_crc ? "OK" : "FAIL");
 
   return valid_crc;
@@ -197,10 +197,10 @@ void parse_args(int argc, char **argv, struct cli_args *args) {
     }
   }
 
-  fprintf(stderr, "serial port: %s\n", args->serial_port);
-  fprintf(stderr, "port type: %d%c%d %d baud\n", args->bits, args->parity,
+  fprintf(stdout, "serial port: %s\n", args->serial_port);
+  fprintf(stdout, "port type: %d%c%d %d baud\n", args->bits, args->parity,
           args->stop_bits, args->speed);
-  fprintf(stderr, "time interval: %d\n", args->bytes_time_interval_us);
+  fprintf(stdout, "time interval: %d\n", args->bytes_time_interval_us);
 }
 
 /* https://blog.mbedded.ninja/programming/operating-systems/linux/linux-serial-ports-using-c-cpp
@@ -356,7 +356,7 @@ int main(int argc, char **argv) {
 
   parse_args(argc, argv, &args);
 
-  fprintf(stderr, "starting modbus sniffer\n");
+  fprintf(stdout, "starting modbus sniffer\n");
 
   if ((port = open(args.serial_port, O_RDONLY)) < 0)
     DIE("open port");
@@ -390,7 +390,7 @@ int main(int argc, char **argv) {
     /* captured an entire packet */
     if (size > 0 &&
         (res == 0 || size >= MODBUS_MAX_PACKET_SIZE || n_bytes == 0)) {
-      fprintf(stderr, "captured packet %d: length = %zu, ", ++n_packets, size);
+      fprintf(stdout, "captured packet %d: length = %zu, ", ++n_packets, size);
 
       if (crc_check(buffer, size)) {
         dump_buffer(buffer, size);
